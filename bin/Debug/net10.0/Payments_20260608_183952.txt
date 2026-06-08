@@ -1,0 +1,13 @@
+PAYMENTS REPORT
+Generated: 08-06-2026 18:39:52
+--------------------------------------------------
+ID: 24 | Booking: 30 | Amount: 131400000.00 | Status: Completed
+ID: 23 | Booking: 29 | Amount: 219000000.00 | Status: Completed
+ID: 22 | Booking: 28 | Amount: 21900000.00 | Status: Completed
+ID: 21 | Booking: 27 | Amount: 30744000.00 | Status: Completed
+ID: 20 | Booking: 12 | Amount: 7500.00 | Status: Failed
+ID: 19 | Booking: 18 | Amount: 48000.00 | Status: Refunded
+ID: 18 | Booking: 17 | Amount: 100000.00 | Status: Refunded
+ID: 17 | Booking: 16 | Amount: 60000.00 | Status: Refunded
+ID: 16 | Booking: 11 | Amount: 72000.00 | Status: Pending
+ID: 15 | Booking: 10 | Amount: 9240.00 | Status: Pending

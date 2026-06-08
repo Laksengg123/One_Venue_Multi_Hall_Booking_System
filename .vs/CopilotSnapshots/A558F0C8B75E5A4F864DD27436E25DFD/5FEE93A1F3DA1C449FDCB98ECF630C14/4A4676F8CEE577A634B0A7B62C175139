@@ -1,0 +1,215 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+using VenueBookingSystem.Shared;
+using VenueBookingSystem.Storage;
+using VenueBookingSystem.Features.Halls.Mapping;
+
+namespace VenueBookingSystem.Features.Halls
+{
+
+    public class HallService
+    {
+        private readonly DatabaseContext _dbContext;
+
+     
+        public HallService(DatabaseContext dbContext)
+        {
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+        }
+
+
+        public Hall? this[int hallId]
+        {
+            get => GetHallByIdAsync(hallId).GetAwaiter().GetResult();
+        }
+
+  
+        public static Dictionary<string, Func<Hall, string>> TableColumns => new()
+        {
+            ["#"]         = h => h.HallId.ToString(),
+            ["Hall Name"]  = h => h.HallName,
+            ["Type"]       = h => h.GetHallTypeDisplay(),
+            ["Capacity"]   = h => h.Capacity.ToString(),
+            ["Price/Hr"]   = h => ConsoleHelper.FormatCurrency(h.PricePerHour),
+            ["AC"]         = h => ConsoleHelper.FormatBool(h.HasAC),
+            ["Projector"]  = h => ConsoleHelper.FormatBool(h.HasProjector),
+            ["WiFi"]       = h => ConsoleHelper.FormatBool(h.HasWifi),
+            ["Location"]   = h => h.Location
+        };
+
+        public async Task<List<Hall>> GetAllHallsAsync(int page = 1, int pageSize = 10)
+        {
+            var halls = new List<Hall>();
+
+            await using var conn = await _dbContext.CreateConnectionAsync();
+            await using var cmd = new SqlCommand("sp_GetAllHalls", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.AddWithValue("@Page", page);
+            cmd.Parameters.AddWithValue("@PageSize", pageSize);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+                halls.Add(HallMapper.FromReader(reader));
+
+            return halls;
+        }
+
+        public Task<List<Hall>> GetAllHallsAsync()
+            => GetAllHallsAsync(page: 1, pageSize: 1000);
+
+        public async Task<Hall?> GetHallByIdAsync(int hallId)
+        {
+            await using var conn = await _dbContext.CreateConnectionAsync();
+            await using var cmd = new SqlCommand("sp_GetHallById", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.AddWithValue("@HallId", hallId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            return await reader.ReadAsync() ? HallMapper.FromReader(reader) : null;
+        }
+
+        public async Task<List<Hall>> GetAvailableHallsAsync(
+            DateTime start,
+            DateTime end,
+            int page = 1,
+            int pageSize = 10)
+        {
+            var halls = new List<Hall>();
+
+            await using var conn = await _dbContext.CreateConnectionAsync();
+            await using var cmd = new SqlCommand("sp_GetAvailableHalls", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.AddWithValue("@StartDateTime", start);
+            cmd.Parameters.AddWithValue("@EndDateTime",   end);
+            cmd.Parameters.AddWithValue("@Page",          page);
+            cmd.Parameters.AddWithValue("@PageSize",      pageSize);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+                halls.Add(HallMapper.FromReader(reader));
+
+            return halls;
+        }
+
+        public async Task<List<Hall>> SearchHallsAsync(
+            string keyword,
+            int page = 1,
+            int pageSize = 10)
+        {
+            var halls = new List<Hall>();
+
+            await using var conn = await _dbContext.CreateConnectionAsync();
+            await using var cmd = new SqlCommand("sp_SearchHalls", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.AddWithValue("@Keyword",  keyword);
+            cmd.Parameters.AddWithValue("@Page",     page);
+            cmd.Parameters.AddWithValue("@PageSize", pageSize);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+                halls.Add(HallMapper.FromReader(reader));
+
+            return halls;
+        }
+
+        public async Task<int> GetTotalHallCountAsync()
+        {
+            await using var conn = await _dbContext.CreateConnectionAsync();
+            await using var cmd = new SqlCommand("sp_GetHallCount", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            var result = await cmd.ExecuteScalarAsync();
+            return result is not null ? Convert.ToInt32(result) : 0;
+        }
+
+        public async Task<List<string>> GetHallTypesAsync()
+        {
+            var types = new List<string>();
+
+            await using var conn = await _dbContext.CreateConnectionAsync();
+            await using var cmd = new SqlCommand(
+                "SELECT DISTINCT HallType FROM Halls WHERE IsActive = 1 ORDER BY HallType",
+                conn)
+            {
+                CommandType = CommandType.Text
+            };
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+                types.Add(reader.GetString(0));
+
+            return types;
+        }
+
+        public async Task<bool> CreateHallAsync(
+            string  hallName,
+            string  hallType,
+            int     capacity,
+            decimal pricePerHour,
+            string  description,
+            string  location,
+            bool    hasAC,
+            bool    hasProjector,
+            bool    hasWifi)
+        {
+            await using var conn = await _dbContext.CreateConnectionAsync();
+            await using var cmd = new SqlCommand("sp_CreateHall", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            cmd.Parameters.AddWithValue("@HallName",     hallName);
+            cmd.Parameters.AddWithValue("@HallType",     hallType);
+            cmd.Parameters.AddWithValue("@Capacity",     capacity);
+            cmd.Parameters.AddWithValue("@PricePerHour", pricePerHour);
+            cmd.Parameters.AddWithValue("@Description",  string.IsNullOrWhiteSpace(description)
+                                                            ? DBNull.Value
+                                                            : description);
+            cmd.Parameters.AddWithValue("@Location",     location);
+            cmd.Parameters.AddWithValue("@HasAC",        hasAC);
+            cmd.Parameters.AddWithValue("@HasProjector", hasProjector);
+            cmd.Parameters.AddWithValue("@HasWifi",      hasWifi);
+
+            await cmd.ExecuteNonQueryAsync();
+            return true;
+        }
+
+        public async Task<bool> UpdateHallAsync(Hall hall)
+        {
+            await using var conn = await _dbContext.CreateConnectionAsync();
+            await using var cmd = new SqlCommand("sp_UpdateHall", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            cmd.Parameters.AddWithValue("@HallId",       hall.HallId);
+            cmd.Parameters.AddWithValue("@HallName",     hall.HallName);
+            cmd.Parameters.AddWithValue("@HallType",     hall.HallType);
+            cmd.Parameters.AddWithValue("@Capacity",     hall.Capacity);
+            cmd.Parameters.AddWithValue("@PricePerHour", hall.PricePerHour);
+            cmd.Parameters.AddWithValue("@Description",  string.IsNullOrWhiteSpace(hall.Description)
+                                                            ? DBNull.Value
+                                                            : hall.Description);
+            cmd.Parameters.AddWithValue("@Location",     hall.Location);
+            cmd.Parameters.AddWithValue("@HasAC",        hall.HasAC);
+            cmd.Parameters.AddWithValue("@HasProjector", hall.HasProjector);
+            cmd.Parameters.AddWithValue("@HasWifi",      hall.HasWifi);
+
+            await cmd.ExecuteNonQueryAsync();
+            return true;
+        }
+    }
+}
