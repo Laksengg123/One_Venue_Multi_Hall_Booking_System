@@ -5,12 +5,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace VenueBookingSystem.Storage
 {
-    /// <summary>
-    /// Serves as the central data access gateway for the application.
-    /// Implements <see cref="IDisposable"/> to ensure deterministic release of unmanaged resources.
-    /// This context acts as a lightweight wrapper over <see cref="SqlConnection"/>, optimized for
-    /// Dapper or raw ADO.NET query execution strategies, avoiding the overhead of a full ORM.
-    /// </summary>
+   
     public class DatabaseContext : IDisposable
     {
         private readonly string _connectionString;

@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.Extensions.Configuration;
 
 namespace VenueBookingSystem.Shared.Configuration
@@ -15,5 +16,7 @@ namespace VenueBookingSystem.Shared.Configuration
 
         public static int MaxLoginAttempts(IConfiguration config) =>
             config.GetValue<int>("AppSettings:MaxLoginAttempts", 3);
+
+       
     }
 }

@@ -32,6 +32,9 @@ namespace VenueBookingSystem.Features.Halls.Repositories
             while (await reader.ReadAsync())
                 halls.Add(HallMapper.FromReader(reader));
 
+            // Newest hall (highest HallId) appears first
+            halls.Sort((a, b) => b.HallId.CompareTo(a.HallId));
+
             return halls;
         }
 

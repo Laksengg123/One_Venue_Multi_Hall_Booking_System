@@ -6,23 +6,25 @@ using VenueBookingSystem.Shared;
 namespace VenueBookingSystem.Features.Authentication;
 
 /// <summary>
-/// DESIGN SPECIFICATIONS: Authentication & Onboarding Interface
+/// DESIGN SPECIFICATIONS: Authentication &amp; Onboarding Interface
 /// ─────────────────────────────────────────────────────────────────────────────
-/// 1. LAYOUT & VISUAL HIERARCHY
+/// 1. LAYOUT &amp; VISUAL HIERARCHY
 ///    - Screens use dynamic widths matching ConsoleHelper dimensions.
 ///    - Features a double-line boundary card for demo user credentials on landing.
 ///    - Clear indentation is enforced to align prompts away from console edge.
 /// 
-/// 2. COLOR PALETTE & SIGNALS
+/// 2. COLOR PALETTE &amp; SIGNALS
 ///    - Cyan / White: Headers, menu titles, and labels.
 ///    - Yellow / Green: Distinctive highlights for user roles and demo credentials.
 ///    - Dark Cyan: Decorative outer frame for high-contrast visibility.
 ///    - Red: High-visibility error reporting for validation failures.
 ///    - Dark Gray: System hints, input tips, and background divider borders.
+///    - Green border: Accepted / success messages.
+///    - Yellow bracket: Editable fields (✎ pencil icon).
 /// 
 /// 3. INTERACTIVE FEEDBACK
 ///    - Live inputs are verified using ValidationHelper.
-///    - Success notifications (Green checkmarks) highlight accepted fields.
+///    - Success notifications (Green bordered box) highlight accepted fields.
 ///    - Password mask '*' with dynamic visibility toggle via [Tab].
 /// ─────────────────────────────────────────────────────────────────────────────
 /// </summary>
@@ -35,7 +37,126 @@ public class LoginScreen
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
     }
 
+    // ─────────────────────────── USAGE TABLE ───────────────────────────
 
+    /// <summary>
+    /// Renders a color-coded Role | Feature | Access table on the initial landing page.
+    ///   Green  = Admin full access
+    ///   Cyan   = Customer access
+    ///   Red    = Denied / not available
+    ///   Yellow = Editable fields indicator
+    /// </summary>
+    private static void PrintUsageTable()
+    {
+        string ind = ConsoleHelper.GetIndent();
+
+        // Column widths (fixed so table stays aligned)
+        const int C1 = 15; // Role
+        const int C2 = 32; // Feature
+        const int C3 =  9; // Access
+
+        string hdr    = "+" + new string('-', C1) + "+" + new string('-', C2) + "+" + new string('-', C3) + "+";
+        string topBot = "╔" + new string('═', C1) + "╦" + new string('═', C2) + "╦" + new string('═', C3) + "╗";
+        string midSep = "╠" + new string('═', C1) + "╬" + new string('═', C2) + "╬" + new string('═', C3) + "╣";
+        string botBdr = "╚" + new string('═', C1) + "╩" + new string('═', C2) + "╩" + new string('═', C3) + "╝";
+        string rowSep = "╟" + new string('─', C1) + "╫" + new string('─', C2) + "╫" + new string('─', C3) + "╢";
+
+        Console.WriteLine();
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.WriteLine(ind + "  System Access Overview:");
+        Console.WriteLine();
+
+        // ── Top border ──
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+        Console.WriteLine(ind + topBot);
+
+        // ── Header row ──
+        Console.Write(ind + "║");
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.Write(Pad(" Role",          C1));
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+        Console.Write("║");
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.Write(Pad(" Feature",       C2));
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+        Console.Write("║");
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.Write(Pad(" Access",        C3));
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+        Console.WriteLine("║");
+
+        // ── Mid separator after header ──
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+        Console.WriteLine(ind + "╠" + new string('═', C1) + "╬" + new string('═', C2) + "╬" + new string('═', C3) + "╣");
+
+        // ── Data rows ──
+        var rows = new (string Role, string Feature, string Access, ConsoleColor AccessColor)[]
+        {
+            (" Admin",   " Manage Halls & Venues",         " ✔ Full   ", ConsoleColor.Green),
+            (" Admin",   " Manage All Bookings",           " ✔ Full   ", ConsoleColor.Green),
+            (" Admin",   " Process Payments",              " ✔ Full   ", ConsoleColor.Green),
+            (" Admin",   " Generate Reports",              " ✔ Full   ", ConsoleColor.Green),
+            (" Admin",   " Manage Users & Roles",          " ✔ Full   ", ConsoleColor.Green),
+            (" Customer"," Browse Available Halls",        " ✔ Yes    ", ConsoleColor.Cyan),
+            (" Customer"," Create & Cancel Bookings",      " ✔ Yes    ", ConsoleColor.Cyan),
+            (" Customer"," View Booking History",          " ✔ Yes    ", ConsoleColor.Cyan),
+            (" Customer"," Make Payments",                 " ✔ Yes    ", ConsoleColor.Cyan),
+            (" Customer"," Generate Reports",              " ✖ No     ", ConsoleColor.Red),
+        };
+
+        bool alt = false;
+        for (int i = 0; i < rows.Length; i++)
+        {
+            var (role, feature, access, color) = rows[i];
+            ConsoleColor rowColor = alt ? ConsoleColor.Gray : ConsoleColor.White;
+
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.Write(ind + "║");
+            Console.ForegroundColor = rowColor;
+            Console.Write(Pad(role,    C1));
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.Write("║");
+            Console.ForegroundColor = rowColor;
+            Console.Write(Pad(feature, C2));
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.Write("║");
+            Console.ForegroundColor = color;
+            Console.Write(Pad(access,  C3));
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.WriteLine("║");
+
+            if (i < rows.Length - 1)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine(ind + rowSep);
+            }
+            alt = !alt;
+        }
+
+        // ── Bottom border ──
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+        Console.WriteLine(ind + botBdr);
+
+        // ── Color legend ──
+        Console.WriteLine();
+        Console.Write(ind + "  ");
+        Console.ForegroundColor = ConsoleColor.Green;  Console.Write("● Full Access  ");
+        Console.ForegroundColor = ConsoleColor.Cyan;   Console.Write("● Customer Access  ");
+        Console.ForegroundColor = ConsoleColor.Yellow; Console.Write("✎ Editable Fields  ");
+        Console.ForegroundColor = ConsoleColor.Red;    Console.Write("✖ Errors / Denied");
+        Console.ResetColor();
+        Console.WriteLine();
+        Console.WriteLine();
+    }
+
+    /// <summary>Pads or truncates text to exactly <paramref name="width"/> characters.</summary>
+    private static string Pad(string text, int width)
+    {
+        if (text.Length >= width) return text[..width];
+        return text.PadRight(width);
+    }
+
+    // ─────────────────────────── REGISTRATION ───────────────────────────
 
     private async Task RegisterNewCustomerAsync()
     {
@@ -91,17 +212,25 @@ public class LoginScreen
         ConsoleHelper.PressAnyKey();
     }
 
+    // ─────────────────────────── MAIN LOOP ───────────────────────────
+
     public async Task<User?> ShowAsync()
     {
         while (true)
         {
             try { Console.Clear(); } catch { }
+
+            // Page header
             ConsoleHelper.PrintHeader("Hall Booking System");
 
+            // Color-coded role/feature/access usage table
+            PrintUsageTable();
+
+            // Main action menu
             ConsoleHelper.PrintMenu(
                 title: "Please select an option",
                 options: ["Login", "Register new customer", "Exit"],
-                showBack: false   
+                showBack: false
             );
 
             int choice = ConsoleHelper.ReadMenuChoice(min: 1, max: 3);
@@ -128,7 +257,6 @@ public class LoginScreen
                         {
                             try
                             {
-                                // Specific per-condition username validation messages
                                 if (string.IsNullOrWhiteSpace(input))
                                     return "Username cannot be empty.";
 
@@ -196,7 +324,7 @@ public class LoginScreen
                                 ConsoleHelper.PressAnyKey();
                                 return user;
                             }
-                           
+
                             Console.WriteLine();
                             ConsoleHelper.PrintError("Invalid username/email or password. Please try again.");
                             ConsoleHelper.PressAnyKey();

@@ -99,7 +99,7 @@ public class PaymentService
             await cmdPay.ExecuteNonQueryAsync();
 
             await using var connStatus = await _dbContext.CreateConnectionAsync();
-            await using var cmdStatus  = new SqlCommand("sp_UpdateBookingStatus", connStatus)
+            await using var cmdStatus  = new SqlCommand("dbo.sp_UpdateBookingStatus", connStatus)
             {
                 CommandType = CommandType.StoredProcedure
             };
@@ -236,18 +236,14 @@ public class PaymentService
 
         await using var conn = await _dbContext.CreateConnectionAsync();
         await using var cmd = new SqlCommand(@"
-            SELECT
-                c.CancellationId,
-                c.BookingId,
-                ISNULL(u.FullName, '') AS CustomerName,
-                ISNULL(h.HallName, '') AS HallName,
-                c.RefundAmount,
-                c.CancellationDate,
-                ISNULL(c.Reason, '') AS Reason,
-                ISNULL(r.RefundStatus, 'Pending') AS RefundStatus
+            SELECT c.CancellationId, c.BookingId, c.RefundAmount, c.CancellationDate, c.Reason,
+                   ISNULL(r.RefundStatus, 'Pending') AS RefundStatus,
+                   b.CustomerNameSnapshot AS CustomerName, b.HallNameSnapshot AS HallName,
+                   ISNULL(c.Status, 'Pending') AS CancellationStatus,
+                   ISNULL(c.AdminRemarks, '') AS AdminRemarks
             FROM Cancellations c
             INNER JOIN Bookings b ON b.BookingId = c.BookingId
-            LEFT JOIN Users u ON u.UserId = b.CustomerId
+            LEFT JOIN Users u ON u.UserId = b.UserId
             LEFT JOIN Halls h ON h.HallId = b.HallId
             OUTER APPLY (
                 SELECT TOP 1 RefundStatus
@@ -257,6 +253,7 @@ public class PaymentService
             ) r
             WHERE c.RefundAmount > 0
               AND ISNULL(r.RefundStatus, 'Pending') <> 'Processed'
+              AND ISNULL(c.Status, 'Pending') = 'Approved'
             ORDER BY c.CancellationDate DESC", conn)
         {
             CommandType = CommandType.Text
@@ -265,16 +262,7 @@ public class PaymentService
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            refunds.Add(new RefundCandidate(
-                reader.GetInt32(reader.GetOrdinal("CancellationId")),
-                reader.GetInt32(reader.GetOrdinal("BookingId")),
-                reader.GetString(reader.GetOrdinal("CustomerName")),
-                reader.GetString(reader.GetOrdinal("HallName")),
-                reader.GetDecimal(reader.GetOrdinal("RefundAmount")),
-                reader.GetDateTime(reader.GetOrdinal("CancellationDate")),
-                reader.GetString(reader.GetOrdinal("Reason")),
-                reader.GetString(reader.GetOrdinal("RefundStatus"))
-            )); 
+            refunds.Add(MapRefundCandidate(reader));
         }
 
         return refunds;
@@ -285,10 +273,10 @@ public class PaymentService
         await using var conn = await _dbContext.CreateConnectionAsync();
         await using var cmd = new SqlCommand(@"
             SELECT COUNT(1)
-            FROM Cancellations c
+            FROM dbo.Cancellations c
             OUTER APPLY (
                 SELECT TOP 1 RefundStatus
-                FROM Refunds rr
+                FROM dbo.Refunds rr
                 WHERE rr.CancellationId = c.CancellationId
                 ORDER BY rr.RefundId DESC
             ) r
@@ -560,4 +548,126 @@ public class PaymentService
 
         await cmd.ExecuteNonQueryAsync();
     }
+
+    // ── ALL cancellation requests (admin view — every status) ──────────────
+    public async Task<List<RefundCandidate>> GetAllCancellationRequestsAsync()
+    {
+        var list = new List<RefundCandidate>();
+
+        await using var conn = await _dbContext.CreateConnectionAsync();
+        await using var cmd  = new SqlCommand(@"
+            SELECT
+                c.CancellationId,
+                c.BookingId,
+                ISNULL(u.FullName,  '') AS CustomerName,
+                ISNULL(h.HallName,  '') AS HallName,
+                c.RefundAmount,
+                c.CancellationDate,
+                ISNULL(c.Reason,    '') AS Reason,
+                ISNULL(r.RefundStatus,  'Pending') AS RefundStatus,
+                ISNULL(c.Status,       'Pending') AS CancellationStatus,
+                ISNULL(c.AdminRemarks, '')          AS AdminRemarks
+            FROM   Cancellations c
+            INNER JOIN dbo.Bookings  b ON b.BookingId  = c.BookingId
+            LEFT  JOIN dbo.Users     u ON u.UserId      = b.UserId
+            LEFT  JOIN dbo.Halls     h ON h.HallId      = b.HallId
+            OUTER APPLY (
+                SELECT TOP 1 RefundStatus
+                FROM   dbo.Refunds rr
+                WHERE  rr.CancellationId = c.CancellationId
+                ORDER  BY rr.RefundId DESC
+            ) r
+            ORDER  BY c.CancellationDate DESC", conn)
+        {
+            CommandType = CommandType.Text
+        };
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+            list.Add(MapRefundCandidate(reader));
+
+        return list;
+    }
+
+    // ── Approve or Reject a pending cancellation request ──────────────────
+    public async Task<bool> UpdateCancellationStatusAsync(
+        int    cancellationId,
+        string status,          // 'Approved' or 'Rejected'
+        string adminRemarks)
+    {
+        try
+        {
+            await using var conn = await _dbContext.CreateConnectionAsync();
+            await using var cmd  = new SqlCommand("dbo.sp_UpdateCancellationStatus", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.AddWithValue("@CancellationId", cancellationId);
+            cmd.Parameters.AddWithValue("@Status",         status);
+            cmd.Parameters.AddWithValue("@AdminRemarks",
+                string.IsNullOrWhiteSpace(adminRemarks) ? (object)DBNull.Value : adminRemarks);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            return await reader.ReadAsync(); // SP returns the updated row
+        }
+        catch (SqlException ex)
+        {
+            throw new PaymentException($"Failed to update cancellation status: {ex.Message}", ex);
+        }
+    }
+
+    // ── GET cancellations and refunds for a specific customer ──────────────
+    public async Task<List<RefundCandidate>> GetCancellationsByCustomerAsync(int customerId)
+    {
+        var list = new List<RefundCandidate>();
+
+        await using var conn = await _dbContext.CreateConnectionAsync();
+        await using var cmd  = new SqlCommand(@"
+            SELECT
+                c.CancellationId,
+                c.BookingId,
+                ISNULL(u.FullName,  '') AS CustomerName,
+                ISNULL(h.HallName,  '') AS HallName,
+                c.RefundAmount,
+                c.CancellationDate,
+                ISNULL(c.Reason,    '') AS Reason,
+                ISNULL(r.RefundStatus,  'Pending') AS RefundStatus,
+                ISNULL(c.Status,       'Pending') AS CancellationStatus,
+                ISNULL(c.AdminRemarks, '')          AS AdminRemarks
+            FROM   Cancellations c
+            INNER JOIN dbo.Bookings  b ON b.BookingId  = c.BookingId
+            LEFT  JOIN dbo.Users     u ON u.UserId      = b.UserId
+            LEFT  JOIN dbo.Halls     h ON h.HallId      = b.HallId
+            OUTER APPLY (
+                SELECT TOP 1 RefundStatus
+                FROM   dbo.Refunds rr
+                WHERE  rr.CancellationId = c.CancellationId
+                ORDER  BY rr.RefundId DESC
+            ) r
+            WHERE  b.UserId = @CustomerId
+            ORDER  BY c.CancellationDate DESC", conn)
+        {
+            CommandType = CommandType.Text
+        };
+        cmd.Parameters.AddWithValue("@CustomerId", customerId);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+            list.Add(MapRefundCandidate(reader));
+
+        return list;
+    }
+
+    private static RefundCandidate MapRefundCandidate(SqlDataReader r) => new RefundCandidate(
+        r.GetInt32(r.GetOrdinal("CancellationId")),
+        r.GetInt32(r.GetOrdinal("BookingId")),
+        r.IsDBNull(r.GetOrdinal("CustomerName"))       ? string.Empty  : r.GetString(r.GetOrdinal("CustomerName")),
+        r.IsDBNull(r.GetOrdinal("HallName"))           ? string.Empty  : r.GetString(r.GetOrdinal("HallName")),
+        r.GetDecimal(r.GetOrdinal("RefundAmount")),
+        r.GetDateTime(r.GetOrdinal("CancellationDate")),
+        r.IsDBNull(r.GetOrdinal("Reason"))             ? string.Empty  : r.GetString(r.GetOrdinal("Reason")),
+        r.IsDBNull(r.GetOrdinal("RefundStatus"))       ? "Pending"     : r.GetString(r.GetOrdinal("RefundStatus")),
+        r.IsDBNull(r.GetOrdinal("CancellationStatus")) ? "Pending"     : r.GetString(r.GetOrdinal("CancellationStatus")),
+        r.IsDBNull(r.GetOrdinal("AdminRemarks"))       ? string.Empty  : r.GetString(r.GetOrdinal("AdminRemarks"))
+    );
 }

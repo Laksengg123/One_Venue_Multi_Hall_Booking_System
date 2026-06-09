@@ -1,4 +1,4 @@
-﻿using VenueBookingSystem.Features.Authentication;
+using VenueBookingSystem.Features.Authentication;
 using VenueBookingSystem.Features.Bookings;
 using System;
 using System.Collections.Generic;
@@ -211,10 +211,15 @@ namespace VenueBookingSystem.Features.Admin
                 return;
             }
 
-            ConsoleHelper.ShowPaginatedTable(
+            int selection = ConsoleHelper.ShowPaginatedTable(
                 rangeBookings,
                 BookingService.TableColumns,
                 $"Bookings: {ConsoleHelper.FormatDateTime(start)} to {ConsoleHelper.FormatDateTime(end)}");
+            if (selection > 0)
+            {
+                ShowBookingDetails(rangeBookings[selection - 1]);
+                ConsoleHelper.PressAnyKey();
+            }
         }
 
         private static void ShowBookingDetails(Booking booking)

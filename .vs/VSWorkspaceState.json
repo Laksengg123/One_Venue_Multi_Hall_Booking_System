@@ -2,12 +2,12 @@
   "ExpandedNodes": [
     "",
     "\\Features",
+    "\\Features\\BookingManagement",
+    "\\Features\\BookingManagement\\Services",
+    "\\obj",
     "\\Shared",
-    "\\Shared\\DTOs",
-    "\\Shared\\Events",
-    "\\Shared\\Repositories",
     "\\Shared\\Services"
   ],
-  "SelectedNode": "\\README.md",
+  "SelectedNode": "\\Features\\OneVenueDB.sql",
   "PreviewInSolutionExplorer": false
 }

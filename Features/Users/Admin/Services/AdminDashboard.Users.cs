@@ -69,8 +69,25 @@ namespace VenueBookingSystem.Features.Admin
                 ["Phone"] = u => u.Phone
             };
 
-            ConsoleHelper.ShowPaginatedTable(customers, columns, "All Customers");
-            ConsoleHelper.PressAnyKey();
+            int selection = ConsoleHelper.ShowPaginatedTable(customers, columns, "All Customers");
+            if (selection > 0)
+            {
+                ShowCustomerDetails(customers[selection - 1]);
+                ConsoleHelper.PressAnyKey();
+            }
+        }
+
+        private static void ShowCustomerDetails(User customer)
+        {
+            Console.Clear();
+            ConsoleHelper.PrintHeader($"Customer Details — {customer.FullName}");
+            ConsoleHelper.PrintReadOnlyId("User ID", customer.UserId.ToString());
+            ConsoleHelper.PrintNonEditableField("Username", customer.Username);
+            ConsoleHelper.PrintNonEditableField("Full Name", customer.FullName);
+            ConsoleHelper.PrintNonEditableField("Email Address", customer.Email);
+            ConsoleHelper.PrintNonEditableField("Phone Number", customer.Phone);
+            ConsoleHelper.PrintNonEditableField("Role", customer.Role.ToString());
+            ConsoleHelper.PrintNonEditableField("Created At", ConsoleHelper.FormatDateTime(customer.CreatedAt));
         }
 
         private async Task AddNewCustomerAsync()

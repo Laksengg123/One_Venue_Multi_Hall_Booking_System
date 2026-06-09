@@ -11,6 +11,17 @@ using VenueBookingSystem.Features.Bookings.Events;
 
 namespace VenueBookingSystem.Features.Bookings;
 
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║              ⚙️ BOOKING SERVICE — THE BOOKING BRAIN                  ║
+// ║  This is the smartest part of the booking system.                    ║
+// ║  It applies BUSINESS RULES (not just raw DB operations).             ║
+// ║  It also fires ANNOUNCEMENTS (events) when important things happen.  ║
+// ║                                                                      ║
+// ║  Booking lifecycle it manages:                                       ║
+// ║     Pending → Confirmed → Completed                                  ║
+// ║     Pending → Cancelled  /  Confirmed → Cancelled                    ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
 /// <summary>
 /// Serves as the primary domain service for managing the booking lifecycle.
 /// Encapsulates complex business rules such as date-range collision detection, 
@@ -18,90 +29,144 @@ namespace VenueBookingSystem.Features.Bookings;
 /// and acts as a publisher for domain events like <see cref="BookingCreated"/> 
 /// to facilitate decoupled side-effects (like Payment processing).
 /// </summary>
-public class BookingService : IBooking
+public class BookingService : IBooking  // "I promise to implement everything IBooking requires"
 {
+    // 🔑 The key to the database — private (nobody outside can access it)
+    //    readonly = once set in the constructor, it NEVER changes
     private readonly DatabaseContext _dbContext;
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 📢 PA SYSTEM — Three announcement channels
+    //    Anyone can SUBSCRIBE to these (using +=)
+    //    We FIRE them (using ?.Invoke) when the event happens
+    //    The '?' means: only announce IF someone is actually listening
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    // 🔔 Channel 1: Fires when a booking is APPROVED by the admin
     public event EventHandler<BookingConfirmedEventArgs>? BookingConfirmed;
 
+    // 🔔 Channel 2: Fires when a booking is CANCELLED (by customer or admin)
     public event EventHandler<BookingCancelledEventArgs>? BookingCancelled;
 
+    // 🔔 Channel 3: Fires when a NEW booking is CREATED for the first time
     public event EventHandler<BookingCreatedEventArgs>? BookingCreated;
 
 
+    // 🏗️ CONSTRUCTOR — "Give me a database connection when you create me"
+    //    Called from Program.cs: new BookingService(dbContext)
     public BookingService(DatabaseContext dbContext)
     {
-        _dbContext = dbContext;
+        _dbContext = dbContext; // Store the database connection for later use
     }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🔄 MAP BOOKING — Translator: converts a database row → C# Booking object
+    //    The database gives data as a spreadsheet row (SqlDataReader)
+    //    This method reads each column by name and builds a Booking
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     private static Booking MapBooking(SqlDataReader r) => new Booking(
-        r.GetInt32(r.GetOrdinal("BookingId")),
-        r.GetInt32(r.GetOrdinal("CustomerId")),
+        r.GetInt32(r.GetOrdinal("BookingId")),      // Read the "BookingId" column as a number
+        r.GetInt32(r.GetOrdinal("CustomerId")),     // Read the "CustomerId" column
+
+        // For text columns: check if the cell is EMPTY in the database first
+        //   Empty? → use blank string   |   Not empty? → read the actual text
         r.IsDBNull(r.GetOrdinal("CustomerName")) ? string.Empty : r.GetString(r.GetOrdinal("CustomerName")),
         r.GetInt32(r.GetOrdinal("HallId")),
         r.IsDBNull(r.GetOrdinal("HallName")) ? string.Empty : r.GetString(r.GetOrdinal("HallName")),
-        r.GetDateTime(r.GetOrdinal("StartDateTime")),
-        r.GetDateTime(r.GetOrdinal("EndDateTime")),
-        r.GetDecimal(r.GetOrdinal("TotalHours")),
-        r.GetDecimal(r.GetOrdinal("TotalAmount")),
-        (BookingStatus)r.GetInt32(r.GetOrdinal("Status")),
+        r.GetDateTime(r.GetOrdinal("StartDateTime")),  // Read start date+time
+        r.GetDateTime(r.GetOrdinal("EndDateTime")),    // Read end date+time
+        r.GetDecimal(r.GetOrdinal("TotalHours")),      // Read total hours as decimal
+        r.GetDecimal(r.GetOrdinal("TotalAmount")),     // Read total price as decimal
+        (BookingStatus)r.GetInt32(r.GetOrdinal("Status")), // Convert number → BookingStatus enum
         r.IsDBNull(r.GetOrdinal("Purpose")) ? string.Empty : r.GetString(r.GetOrdinal("Purpose")),
         r.GetInt32(r.GetOrdinal("GuestCount")),
         r.GetDateTime(r.GetOrdinal("CreatedAt")),
         r.GetDateTime(r.GetOrdinal("UpdatedAt"))
     );
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 📊 TABLE COLUMNS — Defines how bookings look in a screen table
+    //    Each column name maps to: "how to get that value from a Booking"
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     public static Dictionary<string, Func<Booking, string>> TableColumns => new()
     {
-        ["Booking Id"] = b => b.BookingId.ToString(),
-        ["Hall"]     = b => b.HallName,
-        ["Customer"] = b => b.CustomerName,
-        ["Start"]    = b => ConsoleHelper.FormatDateTime(b.StartDateTime),
-        ["End"]      = b => ConsoleHelper.FormatDateTime(b.EndDateTime),
-        ["Duration"] = b => b.GetDurationDisplay(),
-        ["Amount"]   = b => ConsoleHelper.FormatCurrency(b.TotalAmount),
-        ["Status"]   = b => b.GetStatusDisplay(),
-        ["Purpose"]  = b => b.Purpose.Length > 20 ? b.Purpose[..20] + "..." : b.Purpose
+        ["Booking Id"] = b => b.BookingId.ToString(),       // Column: Booking ID as text
+        ["Hall"]       = b => b.HallName,                   // Column: Hall name
+        ["Customer"]   = b => b.CustomerName,               // Column: Customer name
+        ["Start"]      = b => ConsoleHelper.FormatDateTime(b.StartDateTime), // Formatted date
+        ["End"]        = b => ConsoleHelper.FormatDateTime(b.EndDateTime),
+        ["Duration"]   = b => b.GetDurationDisplay(),       // e.g. "5 hrs 0 mins"
+        ["Amount"]     = b => ConsoleHelper.FormatCurrency(b.TotalAmount),  // e.g. "₹40,000"
+        ["Status"]     = b => b.GetStatusDisplay(),         // e.g. "Confirmed"
+
+        // For Purpose: if text is longer than 20 chars, cut it and add "..."
+        // e.g. "Annual Company Dinner Meeting" → "Annual Company Dinne..."
+        ["Purpose"]    = b => b.Purpose.Length > 20 ? b.Purpose[..20] + "..." : b.Purpose
     };
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ➕ CREATE BOOKING — Save a new booking to the database
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     public async Task<int> CreateBookingAsync(Booking booking)
     {
-        try
+        try // "I'm about to do something risky — watch for errors"
         {
+            // Open database connection (async = don't freeze while waiting)
             await using var conn = await _dbContext.CreateConnectionAsync();
+
+            // Prepare the database request — use a pre-written SQL script (stored procedure)
             await using var cmd  = new SqlCommand("sp_CreateBooking", conn)
             {
-                CommandType = CommandType.StoredProcedure
+                CommandType = CommandType.StoredProcedure // "Use the stored procedure, not raw SQL"
             };
 
-            cmd.Parameters.AddWithValue("@CustomerId",     booking.CustomerId);
-            cmd.Parameters.AddWithValue("@HallId",         booking.HallId);
-            cmd.Parameters.AddWithValue("@StartDateTime",  booking.StartDateTime);
-            cmd.Parameters.AddWithValue("@EndDateTime",    booking.EndDateTime);
-            cmd.Parameters.AddWithValue("@TotalHours",     booking.TotalHours);
-            cmd.Parameters.AddWithValue("@TotalAmount",    booking.TotalAmount);
-            cmd.Parameters.AddWithValue("@Status",         (int)BookingStatus.Pending);
+            // Fill in the form fields to send to the database
+            cmd.Parameters.AddWithValue("@CustomerId",     booking.CustomerId);     // Who is booking
+            cmd.Parameters.AddWithValue("@HallId",         booking.HallId);         // Which hall
+            cmd.Parameters.AddWithValue("@StartDateTime",  booking.StartDateTime);  // When it starts
+            cmd.Parameters.AddWithValue("@EndDateTime",    booking.EndDateTime);    // When it ends
+            cmd.Parameters.AddWithValue("@TotalHours",     booking.TotalHours);     // How many hours
+            cmd.Parameters.AddWithValue("@TotalAmount",    booking.TotalAmount);    // How much money
+            cmd.Parameters.AddWithValue("@Status",         (int)BookingStatus.Pending); // Always starts as Pending
+            // If no purpose given, send NULL to database (not empty string — database difference!)
             cmd.Parameters.AddWithValue("@Purpose",        (object?)booking.Purpose ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@GuestCount",     booking.GuestCount);
+            cmd.Parameters.AddWithValue("@GuestCount",     booking.GuestCount);     // How many guests
 
+            // Send the request to database and WAIT for the new Booking ID to come back
             var result = await cmd.ExecuteScalarAsync();
+
+            // If result is empty or null → use 0 as fallback (something went wrong)
             int bookingId = result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
-            if (bookingId > 0)
+
+            if (bookingId > 0) // If we got a real Booking ID (not 0)
             {
+                // 'with { }' = make a copy of the booking and fill in the new ID
+                // (records are immutable — we can't just set BookingId directly)
                 var createdBooking = booking with { BookingId = bookingId };
+
+                // 📢 FIRE THE ANNOUNCEMENT: "Hey everyone! New booking #42 was just created!"
+                // '?' = only announce if someone is actually subscribed (listening)
                 BookingCreated?.Invoke(this, new BookingCreatedEventArgs(createdBooking));
             }
-            return bookingId;
+
+            return bookingId; // Return the new Booking ID to whoever called this method
         }
-        catch (SqlException ex)
+        catch (SqlException ex) // If the DATABASE throws an error
         {
+            // Wrap it in our custom BookingException with a clear message
+            // 'ex' is attached as the inner exception — so the root cause is preserved
             throw new BookingException($"Failed to create booking: {ex.Message}", ex);
         }
     }
 
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 📄 GET BOOKINGS BY CUSTOMER — Fetch all bookings for one customer
+    //    Returns them in pages (e.g. 10 at a time) — not all at once
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     public async Task<List<Booking>> GetBookingsByCustomerAsync(int customerId, int page, int pageSize)
     {
-        var bookings = new List<Booking>();
+        var bookings = new List<Booking>(); // Start with an empty list
 
         await using var conn = await _dbContext.CreateConnectionAsync();
         await using var cmd  = new SqlCommand("sp_GetBookingsByCustomer", conn)
@@ -109,37 +174,46 @@ public class BookingService : IBooking
             CommandType = CommandType.StoredProcedure
         };
 
-        cmd.Parameters.AddWithValue("@CustomerId", customerId);
-        cmd.Parameters.AddWithValue("@Page",       page);
-        cmd.Parameters.AddWithValue("@PageSize",   pageSize);
+        cmd.Parameters.AddWithValue("@CustomerId", customerId); // Which customer?
+        cmd.Parameters.AddWithValue("@Page",       page);       // Which page of results?
+        cmd.Parameters.AddWithValue("@PageSize",   pageSize);   // How many per page?
 
+        // Read each row the database returns and convert it to a Booking object
         await using var reader = await cmd.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-            bookings.Add(MapBooking(reader));
+        while (await reader.ReadAsync()) // "Keep reading rows until there are no more"
+            bookings.Add(MapBooking(reader)); // Translate row → Booking and add to list
 
-        return bookings;
+        return bookings; // Return the complete list
     }
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ❌ CANCEL BOOKING — Cancel a booking by its ID
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     public async Task<bool> CancelBookingAsync(int bookingId)
     {
         try
         {
             await using var conn = await _dbContext.CreateConnectionAsync();
-            await using var cmd = new SqlCommand("sp_CancelBooking", conn)
+            // The database exposes a generic status-update procedure. Use it to mark the booking Cancelled.
+            await using var cmd = new SqlCommand("dbo.sp_UpdateBookingStatus", conn)
             {
                 CommandType = CommandType.StoredProcedure
             };
 
-            cmd.Parameters.AddWithValue("@BookingId", bookingId);
-            cmd.Parameters.AddWithValue("@Remarks", "Cancelled by customer");
+            cmd.Parameters.AddWithValue("@BookingId", bookingId);                       // Which booking
+            cmd.Parameters.AddWithValue("@Status",    (int)BookingStatus.Cancelled);    // Mark as Cancelled
+            cmd.Parameters.AddWithValue("@Remarks",   "Cancelled by customer");        // Reason for cancellation
 
-            await cmd.ExecuteNonQueryAsync();
+            await cmd.ExecuteNonQueryAsync(); // Run it (we don't need data back)
 
+            // Fetch the updated booking details so we can attach them to the announcement
             var booking = await GetBookingByIdAsync(bookingId);
-            if (booking is not null)
+
+            if (booking is not null) // Only announce if the booking was found
+                // 📢 FIRE THE ANNOUNCEMENT: "Booking #42 was just cancelled!"
                 BookingCancelled?.Invoke(this, new BookingCancelledEventArgs(booking));
 
-            return true;
+            return true; // Cancellation was successful
         }
         catch (SqlException ex)
         {
@@ -147,6 +221,10 @@ public class BookingService : IBooking
         }
     }
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🔍 CHECK AVAILABILITY — Is a hall free on given dates?
+    //    Returns: true = Available ✅ | false = Already Booked ❌
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     public async Task<bool> CheckAvailabilityAsync(int hallId, DateTime start, DateTime end)
     {
         await using var conn = await _dbContext.CreateConnectionAsync();
@@ -155,14 +233,17 @@ public class BookingService : IBooking
             CommandType = CommandType.StoredProcedure
         };
 
-        cmd.Parameters.AddWithValue("@HallId",    hallId);
-        cmd.Parameters.AddWithValue("@StartDateTime",  start);
-        cmd.Parameters.AddWithValue("@EndDateTime",    end);
+        cmd.Parameters.AddWithValue("@HallId",        hallId); // Which hall to check
+        cmd.Parameters.AddWithValue("@StartDateTime",  start);  // Booking start time
+        cmd.Parameters.AddWithValue("@EndDateTime",    end);    // Booking end time
 
         var result = await cmd.ExecuteScalarAsync();
+        // Database returns 1 = Available | 0 = Not available
+        // Convert to C# true/false
         return Convert.ToInt32(result) == 1;
     }
 
+    // 🔢 COUNT — How many bookings has this customer made in total?
     public async Task<int> GetCustomerBookingCountAsync(int customerId)
     {
         await using var conn = await _dbContext.CreateConnectionAsync();
@@ -174,10 +255,14 @@ public class BookingService : IBooking
         cmd.Parameters.AddWithValue("@CustomerId", customerId);
 
         var result = await cmd.ExecuteScalarAsync();
+        // If result is null or empty → return 0 (no bookings)
         return result is null or DBNull ? 0 : Convert.ToInt32(result);
     }
 
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 📦 GET ALL BOOKINGS — For admin: fetch all bookings (paged)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     public async Task<List<Booking>> GetAllBookingsAsync(int page = 1, int pageSize = 10)
     {
         var bookings = new List<Booking>();
@@ -188,8 +273,8 @@ public class BookingService : IBooking
             CommandType = CommandType.StoredProcedure
         };
 
-        cmd.Parameters.AddWithValue("@Page",     page);
-        cmd.Parameters.AddWithValue("@PageSize", pageSize);
+        cmd.Parameters.AddWithValue("@Page",     page);     // Which page?
+        cmd.Parameters.AddWithValue("@PageSize", pageSize); // How many per page?
 
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -198,6 +283,8 @@ public class BookingService : IBooking
         return bookings;
     }
 
+    // 🔎 FIND ONE — Get a single booking by its ID
+    //    Returns null if not found (the '?' in Task<Booking?> means "might be nothing")
     public async Task<Booking?> GetBookingByIdAsync(int bookingId)
     {
         await using var conn = await _dbContext.CreateConnectionAsync();
@@ -209,39 +296,50 @@ public class BookingService : IBooking
         cmd.Parameters.AddWithValue("@BookingId", bookingId);
 
         await using var reader = await cmd.ExecuteReaderAsync();
+        // If the database found a row → convert it to a Booking
+        // If no row found → return null (booking doesn't exist)
         return await reader.ReadAsync() ? MapBooking(reader) : null;
     }
 
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🔄 UPDATE STATUS — Change a booking's status (admin action)
+    //    Also fires the appropriate announcement (Confirmed or Cancelled)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     public async Task<bool> UpdateBookingStatusAsync(int bookingId, BookingStatus status, string remarks = "")
     {
         try
         {
             await using var conn = await _dbContext.CreateConnectionAsync();
-            await using var cmd  = new SqlCommand("sp_UpdateBookingStatus", conn)
+            await using var cmd = new SqlCommand("dbo.sp_UpdateBookingStatus", conn)
             {
                 CommandType = CommandType.StoredProcedure
             };
 
-            cmd.Parameters.AddWithValue("@BookingId", bookingId);
-            cmd.Parameters.AddWithValue("@Status",    (int)status);
-            cmd.Parameters.AddWithValue("@Remarks",   (object?)remarks ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@BookingId", bookingId);             // Which booking
+            cmd.Parameters.AddWithValue("@Status",    (int)status);           // New status as number
+            cmd.Parameters.AddWithValue("@Remarks",   (object?)remarks ?? DBNull.Value); // Reason (optional)
 
-            await cmd.ExecuteNonQueryAsync();
+            await cmd.ExecuteNonQueryAsync(); // Run the update — no return value needed
 
+            // Only fire an announcement for Confirmed and Cancelled status changes
+            // (We don't announce every single minor status update)
             if (status == BookingStatus.Confirmed || status == BookingStatus.Cancelled)
                 {
+                    // Fetch the updated booking so we can include it in the announcement
                     var booking = await GetBookingByIdAsync(bookingId);
                     if (booking is not null)
                     {
                     if (status == BookingStatus.Confirmed)
+                        // 📢 "Booking #42 has been CONFIRMED by admin!"
                         BookingConfirmed?.Invoke(this, new BookingConfirmedEventArgs(booking));
                     else
+                        // 📢 "Booking #42 has been CANCELLED!"
                         BookingCancelled?.Invoke(this, new BookingCancelledEventArgs(booking));
                 }
             }
 
-            return true;
+            return true; // Status update was successful
         }
         catch (SqlException ex)
         {
@@ -250,6 +348,7 @@ public class BookingService : IBooking
     }
 
 
+    // 🔢 TOTAL COUNT — How many bookings exist in total? (for admin reports)
     public async Task<int> GetTotalBookingCountAsync()
     {
         await using var conn = await _dbContext.CreateConnectionAsync();
@@ -259,10 +358,10 @@ public class BookingService : IBooking
         };
 
         var result = await cmd.ExecuteScalarAsync();
-        return result is null or DBNull ? 0 : Convert.ToInt32(result);
+        return result is null or DBNull ? 0 : Convert.ToInt32(result); // null → 0
     }
 
-   
+    // ⏳ PENDING LIST — Get all bookings waiting for admin approval
     public async Task<List<Booking>> GetPendingBookingsAsync()
     {
         var bookings = new List<Booking>();
@@ -281,6 +380,8 @@ public class BookingService : IBooking
     }
 
 
+    // 📅 DATE RANGE — Get all bookings that fall within a date range
+    //    e.g. "Show me all bookings from June 1 to June 30"
     public async Task<List<Booking>> GetBookingsByDateRangeAsync(DateTime start, DateTime end)
     {
         var bookings = new List<Booking>();
@@ -291,8 +392,8 @@ public class BookingService : IBooking
             CommandType = CommandType.StoredProcedure
         };
 
-        cmd.Parameters.AddWithValue("@StartDate", start);
-        cmd.Parameters.AddWithValue("@EndDate",   end);
+        cmd.Parameters.AddWithValue("@StartDate", start); // From this date
+        cmd.Parameters.AddWithValue("@EndDate",   end);   // Until this date
 
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -301,6 +402,8 @@ public class BookingService : IBooking
         return bookings;
     }
 
+    // 🏛️ HALL BOOKINGS — Get all bookings for a specific hall
+    //    Note: loads all bookings then filters in memory (not ideal for very large data)
     public async Task<List<Booking>> GetAllBookingsForHallAsync(int hallId)
     {
         var bookings = new List<Booking>();
@@ -311,12 +414,12 @@ public class BookingService : IBooking
         };
         // Fetch all records; filter in-memory by hallId
         cmd.Parameters.AddWithValue("@Page", 1);
-        cmd.Parameters.AddWithValue("@PageSize", 10000);
+        cmd.Parameters.AddWithValue("@PageSize", 10000); // Large number to get "all" records
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             var b = MapBooking(reader);
-            if (b.HallId == hallId)
+            if (b.HallId == hallId) // Only keep bookings for this specific hall
                 bookings.Add(b);
         }
         return bookings;

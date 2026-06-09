@@ -56,6 +56,9 @@ namespace VenueBookingSystem.Features.Halls
             while (await reader.ReadAsync())
                 halls.Add(HallMapper.FromReader(reader));
 
+            // Newest hall (highest HallId) appears first in every table
+            halls.Sort((a, b) => b.HallId.CompareTo(a.HallId));
+
             return halls;
         }
 

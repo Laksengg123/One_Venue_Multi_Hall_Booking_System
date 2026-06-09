@@ -46,10 +46,11 @@ public partial class AdminDashboard
                 "Booking Management",
                 "Payment Management",
                 "User Management",
-                "Reports"
+                "Reports",
+                "Manage Policies"
             });
 
-            int choice = ConsoleHelper.ReadMenuChoice(1, 5);
+            int choice = ConsoleHelper.ReadMenuChoice(1, 6);
             switch (choice)
             {
                 case 1: await ShowHallManagementAsync(); break;
@@ -57,6 +58,7 @@ public partial class AdminDashboard
                 case 3: await ShowPaymentManagementAsync(); break;
                 case 4: await ShowUserManagementAsync(); break;
                 case 5: await ShowReportsAsync(); break;
+                case 6: await ShowPolicyManagementAsync(); break;
                 case 0:
                     if (ConsoleHelper.Confirm("Are you sure you want to logout?"))
                         running = false;

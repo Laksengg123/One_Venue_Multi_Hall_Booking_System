@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\lakch\\source\\repos\\Hall_Booking_System\\Hall_Booking_System\\Hall_Booking_System\\VenueBookingSystem.csproj": {}
+    "C:\\Users\\lakch\\source\\repos\\Hall_Booking_System\\Hall_Booking_System\\Hall_Booking_System\\VenueBookingSystem.csproj": {}
   },
   "projects": {
-    "c:\\Users\\lakch\\source\\repos\\Hall_Booking_System\\Hall_Booking_System\\Hall_Booking_System\\VenueBookingSystem.csproj": {
+    "C:\\Users\\lakch\\source\\repos\\Hall_Booking_System\\Hall_Booking_System\\Hall_Booking_System\\VenueBookingSystem.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\lakch\\source\\repos\\Hall_Booking_System\\Hall_Booking_System\\Hall_Booking_System\\VenueBookingSystem.csproj",
+        "projectUniqueName": "C:\\Users\\lakch\\source\\repos\\Hall_Booking_System\\Hall_Booking_System\\Hall_Booking_System\\VenueBookingSystem.csproj",
         "projectName": "VenueBookingSystem",
-        "projectPath": "c:\\Users\\lakch\\source\\repos\\Hall_Booking_System\\Hall_Booking_System\\Hall_Booking_System\\VenueBookingSystem.csproj",
+        "projectPath": "C:\\Users\\lakch\\source\\repos\\Hall_Booking_System\\Hall_Booking_System\\Hall_Booking_System\\VenueBookingSystem.csproj",
         "packagesPath": "C:\\Users\\lakch\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\lakch\\source\\repos\\Hall_Booking_System\\Hall_Booking_System\\Hall_Booking_System\\obj\\",
+        "outputPath": "C:\\Users\\lakch\\source\\repos\\Hall_Booking_System\\Hall_Booking_System\\Hall_Booking_System\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\lakch\\AppData\\Roaming\\NuGet\\NuGet.Config",

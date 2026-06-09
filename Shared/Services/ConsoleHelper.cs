@@ -6,7 +6,8 @@ namespace VenueBookingSystem.Shared
 {
     public static class ConsoleHelper
     {
-        public const int PAGE_SIZE = 10;
+        public const int PAGE_SIZE = 7;
+
         public const string BACK_COMMAND = "0";
         private static int _tableRenderCount = 0;
 
@@ -39,6 +40,37 @@ namespace VenueBookingSystem.Shared
             try { Console.Clear(); } catch { }
             Console.CursorVisible = false;
 
+            // ── ASCII art arrays (defined locally) ──────────────────────────
+            // "HALL" in block letters
+            string[] art = new[]
+            {
+                @" █  █   █   █     █     ",
+                @" █  █  █ █  █     █     ",
+                @" ████ █████ █     █     ",
+                @" █  █ █   █ █     █     ",
+                @" █  █ █   █ ████  ████  ",
+            };
+
+            // "BOOKING" in block letters
+            string[] art2 = new[]
+            {
+                @" ████   ████   ████  █  █  ████  █  █   ████  ",
+                @" █   █ █    █ █    █ █ █      █  █  █  █      ",
+                @" ████  █    █ █    █ ███    ██   ████  █  ███ ",
+                @" █   █ █    █ █    █ █ █      █  █  █  █    █ ",
+                @" ████   ████   ████  █  █ ████   █  █   ████  ",
+            };
+
+            // "SYSTEM" in block letters
+            string[] art3 = new[]
+            {
+                @"  ████  ██  █  ████  ████  ████  █   █ ",
+                @" █      █ █ █    █  █      █      ██ ██ ",
+                @"  ███   █  ██    █   ███   ███   █ █ █ ",
+                @"     █  █   █    █      █  █      █   █ ",
+                @" ████   █   █    █  ████   ████   █   █ ",
+            };
+
             const int W = 76;
             string ind = "  ";
             try
@@ -49,40 +81,16 @@ namespace VenueBookingSystem.Shared
             }
             catch { }
 
-            // Top border
-            SetColor(ConsoleColor.DarkCyan);
             Console.WriteLine();
+
+            // ── Decorative top accent ──────────────────────────────────────
+            SetColor(ConsoleColor.DarkGray);
+            Console.WriteLine(ind + "  " + new string('·', W - 2));
+
+            // Top border
+            SetColor(ConsoleColor.Cyan);
             Console.WriteLine(ind + "╔" + new string('═', W) + "╗");
             Console.WriteLine(ind + "║" + new string(' ', W) + "║");
-
-            // ASCII art title – HALL BOOKING SYSTEM
-            string[] art = new[]
-            {
-                @" ██╗  ██╗ █████╗ ██╗     ██╗     ",
-                @" ██║  ██║██╔══██╗██║     ██║     ",
-                @" ███████║███████║██║     ██║     ",
-                @" ██╔══██║██╔══██║██║     ██║     ",
-                @" ██║  ██║██║  ██║███████╗███████╗",
-                @" ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝",
-            };
-            string[] art2 = new[]
-            {
-                @" ██████╗  ██████╗  ██████╗ ██╗  ██╗██╗███╗   ██╗ ██████╗ ",
-                @" ██╔══██╗██╔═══██╗██╔═══██╗██║ ██╔╝██║████╗  ██║██╔════╝ ",
-                @" ██████╔╝██║   ██║██║   ██║█████╔╝ ██║██╔██╗ ██║██║  ███╗",
-                @" ██╔══██╗██║   ██║██║   ██║██╔═██╗ ██║██║╚██╗██║██║   ██║",
-                @" ██████╔╝╚██████╔╝╚██████╔╝██║  ██╗██║██║ ╚████║╚██████╔╝",
-                @" ╚═════╝  ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ",
-            };
-            string[] art3 = new[]
-            {
-                @"  ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗",
-                @"  ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║",
-                @"  ███████╗ ╚████╔╝ ███████╗   ██║   █████╗  ██╔████╔██║",
-                @"  ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║",
-                @"  ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║",
-                @"  ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝",
-            };
 
             // Print HALL
             foreach (string line in art)
@@ -91,11 +99,20 @@ namespace VenueBookingSystem.Shared
                 Console.Write(ind + "║");
                 SetColor(ConsoleColor.Cyan);
                 Console.Write(padded);
-                SetColor(ConsoleColor.DarkCyan);
+                SetColor(ConsoleColor.Cyan);
                 Console.WriteLine("║");
             }
 
             // Spacer
+            SetColor(ConsoleColor.Cyan);
+            Console.WriteLine(ind + "║" + new string(' ', W) + "║");
+
+            // Divider between HALL and BOOKING
+            SetColor(ConsoleColor.DarkGray);
+            Console.Write(ind + "║");
+            Console.Write(new string('─', W));
+            Console.WriteLine("║");
+            SetColor(ConsoleColor.Cyan);
             Console.WriteLine(ind + "║" + new string(' ', W) + "║");
 
             // Print BOOKING
@@ -105,11 +122,19 @@ namespace VenueBookingSystem.Shared
                 Console.Write(ind + "║");
                 SetColor(ConsoleColor.White);
                 Console.Write(padded);
-                SetColor(ConsoleColor.DarkCyan);
+                SetColor(ConsoleColor.Cyan);
                 Console.WriteLine("║");
             }
 
             // Spacer
+            Console.WriteLine(ind + "║" + new string(' ', W) + "║");
+
+            // Divider between BOOKING and SYSTEM
+            SetColor(ConsoleColor.DarkGray);
+            Console.Write(ind + "║");
+            Console.Write(new string('─', W));
+            Console.WriteLine("║");
+            SetColor(ConsoleColor.Cyan);
             Console.WriteLine(ind + "║" + new string(' ', W) + "║");
 
             // Print SYSTEM
@@ -117,49 +142,62 @@ namespace VenueBookingSystem.Shared
             {
                 string padded = CenterPad(line, W);
                 Console.Write(ind + "║");
-                SetColor(ConsoleColor.DarkYellow);
+                SetColor(ConsoleColor.Yellow);
                 Console.Write(padded);
-                SetColor(ConsoleColor.DarkCyan);
+                SetColor(ConsoleColor.Cyan);
                 Console.WriteLine("║");
             }
 
             Console.WriteLine(ind + "║" + new string(' ', W) + "║");
 
+            // Accent divider before tagline
+            SetColor(ConsoleColor.DarkCyan);
+            Console.Write(ind + "╠");
+            Console.Write(new string('═', W));
+            Console.WriteLine("╣");
+
             // Tagline
-            string tag = "One Venue  ·  Multiple Halls  ·  Seamless Booking Experience";
+            string tag = "✦   One Venue  ·  Multiple Halls  ·  Seamless Booking Experience   ✦";
             string tagPad = CenterPad(tag, W);
             Console.Write(ind + "║");
             SetColor(ConsoleColor.Yellow);
             Console.Write(tagPad);
-            SetColor(ConsoleColor.DarkCyan);
+            SetColor(ConsoleColor.Cyan);
             Console.WriteLine("║");
 
             Console.WriteLine(ind + "║" + new string(' ', W) + "║");
 
             // Version strip
-            string ver = "v1.0.0   ·   .NET 10   ·   SQL Server";
+            string ver = "v1.0.0   ·   .NET 10   ·   SQL Server   ·   Authenticated Access Only";
             string verPad = CenterPad(ver, W);
             Console.Write(ind + "║");
             SetColor(ConsoleColor.DarkGray);
             Console.Write(verPad);
-            SetColor(ConsoleColor.DarkCyan);
+            SetColor(ConsoleColor.Cyan);
             Console.WriteLine("║");
 
             Console.WriteLine(ind + "║" + new string(' ', W) + "║");
+            SetColor(ConsoleColor.Cyan);
             Console.WriteLine(ind + "╚" + new string('═', W) + "╝");
+
+            // Decorative bottom accent
+            SetColor(ConsoleColor.DarkGray);
+            Console.WriteLine(ind + "  " + new string('·', W - 2));
 
             ResetColor();
             Console.WriteLine();
 
-            // Loading dots animation
+            // Loading bar animation
             SetColor(ConsoleColor.DarkGray);
-            Console.Write(ind + "  Initialising");
-            for (int i = 0; i < 5; i++)
+            Console.Write(ind + "  Initialising  [");
+            SetColor(ConsoleColor.Cyan);
+            for (int i = 0; i < 20; i++)
             {
-                System.Threading.Thread.Sleep(160);
-                Console.Write(" .");
+                System.Threading.Thread.Sleep(60);
+                Console.Write("█");
             }
-            Console.WriteLine();
+            SetColor(ConsoleColor.DarkGray);
+            Console.WriteLine("]  Ready!");
             ResetColor();
             Console.CursorVisible = true;
         }
@@ -182,52 +220,140 @@ namespace VenueBookingSystem.Shared
 
             Console.WriteLine();
 
-            // Top border
-            SetColor(ConsoleColor.DarkCyan);
-            Console.WriteLine(ind + "╔" + new string('═', W) + "╗");
+            // ── Decorative top dots ──
+            SetColor(ConsoleColor.DarkGray);
+            Console.WriteLine(ind + "  " + new string('·', W - 2));
 
-            // Title band
+            // ── Top border ──
+            SetColor(ConsoleColor.Cyan);
+            Console.WriteLine(ind + "╔" + new string('═', W) + "╗");
             Console.WriteLine(ind + "║" + new string(' ', W) + "║");
-            string title = "◈   HALL  BOOKING  SYSTEM   ◈";
+
+            // ── System title ──
+            string sysLabel = "◈  ONE VENUE  MULTI-HALL  BOOKING  SYSTEM  ◈";
+            Console.Write(ind + "║");
+            SetColor(ConsoleColor.Cyan);
+            Console.Write(CenterPad(sysLabel, W));
+            SetColor(ConsoleColor.Cyan);
+            Console.WriteLine("║");
+            Console.WriteLine(ind + "║" + new string(' ', W) + "║");
+
+            // ── Double divider ──
+            SetColor(ConsoleColor.DarkCyan);
+            Console.Write(ind + "╠");
+            Console.Write(new string('═', W));
+            Console.WriteLine("╣");
+
+            // ── Login prompt ──
+            Console.WriteLine(ind + "║" + new string(' ', W) + "║");
             Console.Write(ind + "║");
             SetColor(ConsoleColor.White);
-            Console.Write(CenterPad(title, W));
-            SetColor(ConsoleColor.DarkCyan);
+            Console.Write(CenterPad("Please log in to continue", W));
+            SetColor(ConsoleColor.Cyan);
             Console.WriteLine("║");
             Console.WriteLine(ind + "║" + new string(' ', W) + "║");
 
-            // Accent divider
-            SetColor(ConsoleColor.Cyan);
-            Console.Write(ind + "╠");
-            Console.Write(new string('─', W));
-            Console.WriteLine("╣");
-            SetColor(ConsoleColor.DarkCyan);
-
-            // Tagline
+            // ── Tagline ──
+            SetColor(ConsoleColor.DarkGray);
+            Console.Write(ind + "╠"); Console.Write(new string('─', W)); Console.WriteLine("╣");
             Console.WriteLine(ind + "║" + new string(' ', W) + "║");
-            string tag = "One Venue  ·  Multiple Halls  ·  Seamless Experience";
             Console.Write(ind + "║");
             SetColor(ConsoleColor.Yellow);
-            Console.Write(CenterPad(tag, W));
-            SetColor(ConsoleColor.DarkCyan);
+            Console.Write(CenterPad("✦   One Venue  ·  Multiple Halls  ·  Seamless Experience   ✦", W));
+            SetColor(ConsoleColor.Cyan);
             Console.WriteLine("║");
             Console.WriteLine(ind + "║" + new string(' ', W) + "║");
 
-            // Version strip
-            string ver = "v1.0.0  ·  .NET 10  ·  SQL Server  ·  Authenticated Access Only";
-            Console.Write(ind + "║");
+            // ── Version strip ──
             SetColor(ConsoleColor.DarkGray);
-            Console.Write(CenterPad(ver, W));
-            SetColor(ConsoleColor.DarkCyan);
+            Console.Write(ind + "║");
+            Console.Write(CenterPad("v1.0.0  ·  .NET 10  ·  SQL Server  ·  Authenticated Access Only", W));
+            SetColor(ConsoleColor.Cyan);
             Console.WriteLine("║");
             Console.WriteLine(ind + "║" + new string(' ', W) + "║");
-
-            // Bottom border
             Console.WriteLine(ind + "╚" + new string('═', W) + "╝");
 
+            // ── Feature / Usage color-coded table ──
+            Console.WriteLine();
+            SetColor(ConsoleColor.DarkGray);
+            Console.WriteLine(ind + "  " + new string('·', W - 2));
+            Console.WriteLine();
+
+            // Table header
+            string col1H = " Role          "; // 15
+            string col2H = " Feature                        "; // 32
+            string col3H = " Access "; // 8
+            int t1 = col1H.Length, t2 = col2H.Length, t3 = col3H.Length;
+            string tborder = "+" + new string('-', t1) + "+" + new string('-', t2) + "+" + new string('-', t3) + "+";
+
+            SetColor(ConsoleColor.DarkCyan);
+            Console.WriteLine(ind + tborder);
+            Console.Write(ind + "|");
+            SetColor(ConsoleColor.Yellow); Console.Write(col1H);
+            SetColor(ConsoleColor.DarkCyan); Console.Write("|");
+            SetColor(ConsoleColor.Yellow); Console.Write(col2H);
+            SetColor(ConsoleColor.DarkCyan); Console.Write("|");
+            SetColor(ConsoleColor.Yellow); Console.Write(col3H);
+            SetColor(ConsoleColor.DarkCyan); Console.WriteLine("|");
+            Console.WriteLine(ind + tborder);
+
+            // Table rows: (role, feature, access-color)
+            var rows = new (string Role, string Feature, string Access, ConsoleColor Color)[]
+            {
+                (" Admin         ", " Manage Halls & Venues          ", " ✔ Full  ", ConsoleColor.Green),
+                (" Admin         ", " Manage All Bookings            ", " ✔ Full  ", ConsoleColor.Green),
+                (" Admin         ", " Process Payments               ", " ✔ Full  ", ConsoleColor.Green),
+                (" Admin         ", " Generate Reports               ", " ✔ Full  ", ConsoleColor.Green),
+                (" Admin         ", " Manage Users & Roles           ", " ✔ Full  ", ConsoleColor.Green),
+                (" Customer      ", " Browse Available Halls         ", " ✔ Yes   ", ConsoleColor.Cyan),
+                (" Customer      ", " Create & Cancel Bookings       ", " ✔ Yes   ", ConsoleColor.Cyan),
+                (" Customer      ", " View Booking History           ", " ✔ Yes   ", ConsoleColor.Cyan),
+                (" Customer      ", " Make Payments                  ", " ✔ Yes   ", ConsoleColor.Cyan),
+                (" Customer      ", " Manage Reports                 ", " ✖ No    ", ConsoleColor.Red),
+            };
+
+            bool alt = false;
+            for (int ri = 0; ri < rows.Length; ri++)
+            {
+                var (role, feature, access, color) = rows[ri];
+                SetColor(ConsoleColor.DarkCyan);
+                Console.Write(ind + "|");
+                SetColor(alt ? ConsoleColor.Gray : ConsoleColor.White);
+                Console.Write(role);
+                SetColor(ConsoleColor.DarkCyan);
+                Console.Write("|");
+                SetColor(alt ? ConsoleColor.Gray : ConsoleColor.White);
+                Console.Write(feature);
+                SetColor(ConsoleColor.DarkCyan);
+                Console.Write("|");
+                SetColor(color);
+                Console.Write(access);
+                SetColor(ConsoleColor.DarkCyan);
+                Console.WriteLine("|");
+                if (ri < rows.Length - 1)
+                {
+                    SetColor(ConsoleColor.DarkGray);
+                    Console.WriteLine(ind + tborder);
+                }
+                alt = !alt;
+            }
+            SetColor(ConsoleColor.DarkCyan);
+            Console.WriteLine(ind + tborder);
+
+            // ── Color legend ──
+            Console.WriteLine();
+            Console.Write(ind + "  Color Guide:  ");
+            SetColor(ConsoleColor.Green);  Console.Write("● Full Access  ");
+            SetColor(ConsoleColor.Cyan);   Console.Write("● Customer Access  ");
+            SetColor(ConsoleColor.Yellow); Console.Write("✎ Editable Fields  ");
+            SetColor(ConsoleColor.Red);    Console.Write("✖ Errors / Denied");
+            Console.WriteLine();
+
+            // ── Decorative bottom dots ──
             SetColor(ConsoleColor.DarkGray);
             Console.WriteLine();
-            Console.WriteLine(ind + new string('─', W + 2));
+            Console.WriteLine(ind + "  " + new string('·', W - 2));
+
             Console.WriteLine();
             ResetColor();
         }
@@ -295,34 +421,70 @@ namespace VenueBookingSystem.Shared
 
         public static void PrintSuccess(string message)
         {
+            string ind = GetIndent();
+            int len = Math.Min(message.Length + 10, 74);
             SetColor(ConsoleColor.Green);
-            Console.WriteLine($"  ✔  {message}");
+            Console.WriteLine(ind + "╔" + new string('═', len) + "╗");
+            Console.Write(ind + "║");
+            Console.ForegroundColor = ConsoleColor.White;
+            string content = $"  ✔  {message}  ";
+            if (content.Length < len) content = content.PadRight(len);
+            else if (content.Length > len) content = content[..len];
+            Console.Write(content);
+            SetColor(ConsoleColor.Green);
+            Console.WriteLine("║");
+            Console.WriteLine(ind + "╚" + new string('═', len) + "╝");
             ResetColor();
         }
 
         public static void PrintError(string message)
         {
+            string ind = GetIndent();
+            int len = Math.Min(message.Length + 10, 74);
             SetColor(ConsoleColor.Red);
-            Console.WriteLine($"  ✖  {message}");
+            Console.WriteLine(ind + "╔" + new string('═', len) + "╗");
+            Console.Write(ind + "║");
+            Console.ForegroundColor = ConsoleColor.White;
+            string content = $"  ✖  {message}  ";
+            if (content.Length < len) content = content.PadRight(len);
+            else if (content.Length > len) content = content[..len];
+            Console.Write(content);
+            SetColor(ConsoleColor.Red);
+            Console.WriteLine("║");
+            Console.WriteLine(ind + "╚" + new string('═', len) + "╝");
             ResetColor();
         }
 
         public static void PrintWarning(string message)
         {
+            string ind = GetIndent();
+            int len = Math.Min(message.Length + 10, 74);
             SetColor(ConsoleColor.Yellow);
-            Console.WriteLine($"  ▲  {message}");
+            Console.WriteLine(ind + "┌" + new string('─', len) + "┐");
+            Console.Write(ind + "│");
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            string content = $"  ▲  {message}  ";
+            if (content.Length < len) content = content.PadRight(len);
+            else if (content.Length > len) content = content[..len];
+            Console.Write(content);
+            SetColor(ConsoleColor.Yellow);
+            Console.WriteLine("│");
+            Console.WriteLine(ind + "└" + new string('─', len) + "┘");
             ResetColor();
         }
 
         public static void PrintInfo(string message)
         {
             SetColor(ConsoleColor.Cyan);
-            Console.WriteLine($"  ●  {message}");
+            Console.Write(GetIndent() + "  ●  ");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(message);
             ResetColor();
         }
 
         // ─────────────────────────── FIELD DISPLAY ───────────────────────────
 
+        /// <summary>Editable field — highlighted in Yellow with pencil icon.</summary>
         public static void PrintEditableField(string label, string value)
         {
             string paddedLabel = label.PadLeft(22);
@@ -330,11 +492,18 @@ namespace VenueBookingSystem.Shared
             Console.Write($"  {paddedLabel}");
             SetColor(ConsoleColor.DarkGray);
             Console.Write(" │ ");
-            SetColor(ConsoleColor.Green);
-            Console.WriteLine($"[ {value} ]");
+            SetColor(ConsoleColor.Yellow);
+            Console.Write("✎ ");
+            SetColor(ConsoleColor.Yellow);
+            Console.Write("[ ");
+            SetColor(ConsoleColor.White);
+            Console.Write(value);
+            SetColor(ConsoleColor.Yellow);
+            Console.WriteLine(" ]");
             ResetColor();
         }
 
+        /// <summary>Read-only display field — shown in White.</summary>
         public static void PrintNonEditableField(string label, string value)
         {
             string paddedLabel = label.PadLeft(22);
@@ -347,6 +516,7 @@ namespace VenueBookingSystem.Shared
             ResetColor();
         }
 
+        /// <summary>Auto-generated ID field — shown in Dark Gray.</summary>
         public static void PrintReadOnlyId(string label, string value)
         {
             string paddedLabel = label.PadLeft(22);
@@ -359,6 +529,28 @@ namespace VenueBookingSystem.Shared
             ResetColor();
         }
 
+        /// <summary>Status field — Green for active/confirmed, Red for cancelled/inactive, Yellow for pending.</summary>
+        public static void PrintStatusField(string label, string status)
+        {
+            string paddedLabel = label.PadLeft(22);
+            SetColor(ConsoleColor.DarkCyan);
+            Console.Write($"  {paddedLabel}");
+            SetColor(ConsoleColor.DarkGray);
+            Console.Write(" │ ");
+            string statusUpper = (status ?? "").ToUpper();
+            ConsoleColor statusColor = statusUpper switch
+            {
+                var s when s.Contains("ACTIVE") || s.Contains("CONFIRM") || s.Contains("PAID") || s.Contains("COMPLETE") => ConsoleColor.Green,
+                var s when s.Contains("CANCEL") || s.Contains("REJECT") || s.Contains("FAIL") || s.Contains("INACTIVE") => ConsoleColor.Red,
+                var s when s.Contains("PENDING") || s.Contains("PARTIAL") || s.Contains("HOLD") => ConsoleColor.Yellow,
+                _ => ConsoleColor.White
+            };
+            string dot = statusColor == ConsoleColor.Green ? "● " : statusColor == ConsoleColor.Red ? "● " : "◌ ";
+            SetColor(statusColor);
+            Console.WriteLine(dot + status);
+            ResetColor();
+        }
+
         // ─────────────────────────── MENUS ───────────────────────────
 
         public static void PrintMenu(string title, string[] options, bool showBack = true)
@@ -366,7 +558,16 @@ namespace VenueBookingSystem.Shared
             PrintHeader(title);
 
             string ind = GetIndent();
-            int rowWidth = Math.Min(Math.Max(42, options.Max(o => o.Length) + 14), Math.Max(42, SafeWidth() - ind.Length - 8));
+
+            // Find the longest option text — loop through every option
+            int longestOption = 0;
+            foreach (string option in options)
+            {
+                if (option.Length > longestOption)
+                    longestOption = option.Length;
+            }
+
+            int rowWidth = Math.Min(Math.Max(42, longestOption + 14), Math.Max(42, SafeWidth() - ind.Length - 8));
 
             SetColor(ConsoleColor.DarkCyan);
             Console.WriteLine($"{ind}╭{new string('─', rowWidth)}╮");
@@ -374,34 +575,43 @@ namespace VenueBookingSystem.Shared
             for (int i = 0; i < options.Length; i++)
             {
                 bool accent = i % 2 == 0;
-                string shortcut = $"[{i + 1}]";
-                string line = $" {shortcut,-4} {options[i]}";
-                if (line.Length > rowWidth)
-                    line = line[..rowWidth];
-                else
-                    line = line.PadRight(rowWidth);
+                string shortcutNum = $"{i + 1}";
 
                 Console.Write(ind);
+                SetColor(ConsoleColor.DarkCyan);
                 Console.Write("│");
+
+                // Number badge — alternating Cyan / Yellow
+                Console.Write(" ");
+                SetColor(accent ? ConsoleColor.Cyan : ConsoleColor.Yellow);
+                Console.Write($"[{shortcutNum}]");
+
+                // Option text
                 SetColor(accent ? ConsoleColor.White : ConsoleColor.Gray);
-                Console.Write(line);
+                string textPart = $"  {options[i]}";
+                int remaining = rowWidth - shortcutNum.Length - 4; // 4 = " [" + "] "
+                if (textPart.Length > remaining) textPart = textPart[..remaining];
+                else textPart = textPart.PadRight(remaining);
+                Console.Write(textPart);
+
                 SetColor(ConsoleColor.DarkCyan);
                 Console.WriteLine("│");
 
                 if (i < options.Length - 1)
-                {
                     Console.WriteLine($"{ind}├{new string('─', rowWidth)}┤");
-                }
             }
 
             if (showBack)
             {
                 Console.WriteLine($"{ind}├{new string('─', rowWidth)}┤");
                 Console.Write(ind);
+                SetColor(ConsoleColor.DarkCyan);
                 Console.Write("│");
                 SetColor(ConsoleColor.DarkGray);
-                string backLine = " [0]  ← Back / Exit";
-                Console.Write(backLine.PadRight(rowWidth));
+                Console.Write(" [0]");
+                SetColor(ConsoleColor.DarkGray);
+                string backText = "  ← Back / Exit";
+                Console.Write(backText.PadRight(rowWidth - 4));
                 SetColor(ConsoleColor.DarkCyan);
                 Console.WriteLine("│");
             }
@@ -423,59 +633,74 @@ namespace VenueBookingSystem.Shared
         {
             while (true)
             {
-                // Pure append-only: always print on current cursor line
+                string ind = GetIndent();
+
+                // ── Prompt label ──────────────────────────────────────────────
                 SetColor(ConsoleColor.DarkYellow);
-                Console.Write(GetIndent() + "➤ ");
+                Console.Write(ind + "➤ ");
                 SetColor(ConsoleColor.White);
                 Console.Write(prompt);
 
+                // ── Required / Optional badge ─────────────────────────────────
+                if (required)
+                {
+                    SetColor(ConsoleColor.Red);
+                    Console.Write(" *");          // red asterisk = required
+                }
+                else
+                {
+                    SetColor(ConsoleColor.DarkGray);
+                    Console.Write(" (optional)");
+                }
+
+                // ── Format hint ───────────────────────────────────────────────
                 if (!string.IsNullOrWhiteSpace(formatHint))
                 {
                     SetColor(ConsoleColor.DarkGray);
-                    Console.Write($" [format: {formatHint}]");
+                    Console.Write($" [{formatHint}]");
                 }
 
+                // ── Back hint ─────────────────────────────────────────────────
                 if (allowBack)
                 {
                     SetColor(ConsoleColor.DarkGray);
-                    Console.Write(" (0=Back)");
+                    Console.Write("  0=Back");
                 }
 
+                SetColor(ConsoleColor.DarkGray);
                 Console.Write(" : ");
-
                 SetColor(ConsoleColor.Cyan);
                 string? raw = Console.ReadLine();
                 ResetColor();
 
                 string input = raw?.Trim() ?? string.Empty;
 
-                // Back command — return immediately, no error needed
+                // Back command
                 if (input == BACK_COMMAND && allowBack)
                     return BACK_COMMAND;
 
-                // Empty check
+                // ── Empty check for required fields ───────────────────────────
                 if (required && string.IsNullOrWhiteSpace(input))
                 {
-                    SetColor(ConsoleColor.Red);
-                    Console.WriteLine(GetIndent() + $"  ✖  {prompt} cannot be empty.");
-                    ResetColor();
+                    PrintError($"'{prompt}' is required — this field cannot be left empty.");
                     continue;
                 }
 
-                // Custom validator
+                // Optional field — empty is fine
+                if (!required && string.IsNullOrWhiteSpace(input))
+                    return string.Empty;
+
+                // ── Custom validator ──────────────────────────────────────────
                 if (validator != null)
                 {
                     string? error = validator(input);
                     if (error != null)
                     {
-                        SetColor(ConsoleColor.Red);
-                        Console.WriteLine(GetIndent() + $"  ✖  {error}");
-                        ResetColor();
+                        PrintError(error);
                         continue;
                     }
                 }
 
-                // Valid — return as-is; caller's next prompt will appear on next line
                 return input;
             }
         }
@@ -763,37 +988,42 @@ namespace VenueBookingSystem.Shared
             }
 
             FitTableWidths(widths, headers, maxTableWidth);
-            string border = BuildBorderRow(widths, "+", "+", "+", '-');
+            string border    = BuildBorderRow(widths, "╔", "╦", "╗", '═');
+            string midBorder = BuildBorderRow(widths, "╠", "╬", "╣", '═');
+            string rowBorder = BuildBorderRow(widths, "╟", "╫", "╢", '─');
+            string botBorder = BuildBorderRow(widths, "╚", "╩", "╝", '═');
 
             Console.WriteLine();
 
+            // ── Header row ──
             SetColor(ConsoleColor.DarkCyan);
             Console.WriteLine(indent + border);
-
-                Console.Write(indent + "|");
-                for (int i = 0; i < headers.Count; i++)
-                {
-                    SetColor(ConsoleColor.Yellow);
-                    Console.Write(FormatTableCell(headers[i], widths[i], alignRight: false));
-                    SetColor(ConsoleColor.DarkCyan);
-                    Console.Write("|");
-                }
-                Console.WriteLine();
-
+            Console.Write(indent + "║");
+            for (int i = 0; i < headers.Count; i++)
+            {
+                SetColor(ConsoleColor.Yellow);
+                Console.Write(FormatTableCell(headers[i], widths[i], alignRight: false));
+                SetColor(ConsoleColor.DarkCyan);
+                Console.Write("║");
+            }
+            Console.WriteLine();
             SetColor(ConsoleColor.DarkCyan);
-            Console.WriteLine(indent + border);
+            Console.WriteLine(indent + midBorder);
 
+            // ── Data rows ──
             bool alternate = false;
             for (int r = 0; r < list.Count; r++)
             {
-                Console.Write(indent + "|");
+                Console.Write(indent + "║");
                 for (int i = 0; i < extractors.Count; i++)
                 {
                     string raw = extractors[i](list[r]) ?? string.Empty;
-                    SetColor(alternate ? ConsoleColor.Gray : ConsoleColor.White);
+                    // Status-aware coloring
+                    ConsoleColor cellColor = GetStatusColor(headers[i], raw, alternate);
+                    SetColor(cellColor);
                     Console.Write(FormatTableCell(raw, widths[i], alignRight: ShouldAlignRight(headers[i])));
                     SetColor(ConsoleColor.DarkCyan);
-                    Console.Write("|");
+                    Console.Write("║");
                 }
                 Console.WriteLine();
                 alternate = !alternate;
@@ -801,14 +1031,34 @@ namespace VenueBookingSystem.Shared
                 if (r < list.Count - 1)
                 {
                     SetColor(ConsoleColor.DarkGray);
-                    Console.WriteLine(indent + border);
+                    Console.WriteLine(indent + rowBorder);
                 }
             }
 
             SetColor(ConsoleColor.DarkCyan);
-            Console.WriteLine(indent + border);
+            Console.WriteLine(indent + botBorder);
             ResetColor();
             Console.WriteLine();
+        }
+
+        /// <summary>Returns a cell color based on header name and cell value for status-aware coloring.</summary>
+        private static ConsoleColor GetStatusColor(string header, string value, bool alternate)
+        {
+            string h = header.ToLower().Replace(" ", "").Replace("_", "");
+            string v = value.ToLower();
+            // Status column coloring
+            if (h == "status")
+            {
+                if (v.Contains("confirm") || v.Contains("active") || v.Contains("paid") || v.Contains("complete")) return ConsoleColor.Green;
+                if (v.Contains("cancel") || v.Contains("reject") || v.Contains("fail") || v.Contains("inactive"))  return ConsoleColor.Red;
+                if (v.Contains("pending") || v.Contains("partial") || v.Contains("hold"))                         return ConsoleColor.Yellow;
+            }
+            // Amount / Price in Cyan
+            if (h == "amount" || h == "price" || h == "priceperhour") return ConsoleColor.Cyan;
+            // ID column in DarkGray
+            if (h == "id" || h == "#" || h == "bookingid") return ConsoleColor.DarkGray;
+            // Default alternating
+            return alternate ? ConsoleColor.Gray : ConsoleColor.White;
         }
         public static int ShowPaginatedTable<T>(
             List<T> items,
@@ -838,7 +1088,13 @@ namespace VenueBookingSystem.Shared
 
                 var displayColumns = new Dictionary<string, Func<T, string>>();
                 displayColumns["#"] = item => (pageItems.IndexOf(item) + 1 + startIdx).ToString();
-                foreach (var kvp in columns) displayColumns[kvp.Key] = kvp.Value;
+                foreach (var kvp in columns)
+                {
+                    if (kvp.Key != "#")
+                    {
+                        displayColumns[kvp.Key] = kvp.Value;
+                    }
+                }
 
                 PrintTable(pageItems, displayColumns);
 

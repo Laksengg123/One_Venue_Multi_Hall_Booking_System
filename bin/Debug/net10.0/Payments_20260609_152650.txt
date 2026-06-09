@@ -1,0 +1,13 @@
+PAYMENTS REPORT
+Generated: 09-06-2026 15:26:50
+--------------------------------------------------
+ID: 10 | Booking: 10 | Amount: 8400.00 | Status: Pending
+ID: 9 | Booking: 9 | Amount: 75000.00 | Status: Pending
+ID: 8 | Booking: 8 | Amount: 36000.00 | Status: Pending
+ID: 7 | Booking: 7 | Amount: 24000.00 | Status: Pending
+ID: 6 | Booking: 6 | Amount: 64000.00 | Status: Pending
+ID: 5 | Booking: 5 | Amount: 10000.00 | Status: Pending
+ID: 4 | Booking: 4 | Amount: 60000.00 | Status: Pending
+ID: 3 | Booking: 3 | Amount: 100000.00 | Status: Pending
+ID: 2 | Booking: 2 | Amount: 10500.00 | Status: Pending
+ID: 1 | Booking: 1 | Amount: 60000.00 | Status: Pending
